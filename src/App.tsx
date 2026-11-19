@@ -1,5 +1,5 @@
 // ─── ErgoPulse — Main Application ───
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Power,
   PowerOff,
@@ -11,6 +11,7 @@ import {
   Heart,
   Sparkles,
   Github,
+  HelpCircle,
 } from 'lucide-react';
 
 import { useErgonomicsVision } from './hooks/useErgonomicsVision';
@@ -26,10 +27,21 @@ import { BreakPrompt } from './components/BreakPrompt';
 import { StretchOverlay } from './components/StretchOverlay';
 import { FocusModePill } from './components/FocusModePill';
 import { PrivacyBadge } from './components/PrivacyBadge';
+import { UserGuideModal } from './components/UserGuideModal';
+import { SessionSummaryCard } from './components/SessionSummaryCard';
 import { formatTime } from './utils/math';
 
 export default function App() {
   const [focusMode, setFocusMode] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+
+  // Check first-visit in localStorage
+  useEffect(() => {
+    const dismissed = localStorage.getItem('ergopulse_onboarding_dismissed');
+    if (!dismissed) {
+      setIsGuideOpen(true);
+    }
+  }, []);
 
   // Core vision engine
   const {
@@ -113,6 +125,14 @@ export default function App() {
         onStop={stretch.stopStretch}
       />
 
+      {/* Interactive User Guide & First-Time Onboarding Modal */}
+      <UserGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        onTriggerDemoBreak={wellbeing.triggerBreak}
+        onTriggerStretch={stretch.startStretch}
+      />
+
       {/* Focus Mode Pill */}
       <FocusModePill
         isActive={focusMode && visionState.isRunning}
@@ -136,7 +156,7 @@ export default function App() {
                 <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2">
                   ErgoPulse
                   <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-sage-500/15 text-sage-400 border border-sage-500/25">
-                    v1.0
+                    v1.1
                   </span>
                 </h1>
                 <p className="text-xs text-slate-500">
@@ -147,6 +167,18 @@ export default function App() {
 
             <div className="flex items-center gap-3 flex-wrap">
               <PrivacyBadge />
+
+              {/* Guide button */}
+              <button
+                onClick={() => setIsGuideOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                           bg-slate-800 hover:bg-slate-700 border border-slate-700/80
+                           transition-colors text-xs text-slate-300 font-medium"
+                title="Open User Guide & Hackathon Demo Sheet"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-sage-400" />
+                <span>Guide</span>
+              </button>
 
               {/* Session timer */}
               {visionState.isRunning && wellbeing.sessionStartTime && (
@@ -213,6 +245,8 @@ export default function App() {
                 visionState={visionState}
                 showOverlay={showOverlay}
                 onToggleOverlay={() => setShowOverlay(!showOverlay)}
+                onRetry={handleStart}
+                onOpenGuide={() => setIsGuideOpen(true)}
               />
 
               <CalibrationFlow
@@ -223,11 +257,19 @@ export default function App() {
 
               {/* Demo Controls */}
               <div className="glass-card-sm p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Hackathon Demo Controls
-                  </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                      Hackathon Demo Controls
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setIsGuideOpen(true)}
+                    className="text-[11px] text-amber-400/90 hover:text-amber-300 transition-colors"
+                  >
+                    View Cheat Sheet →
+                  </button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -254,7 +296,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right column: Metrics + Chart */}
+            {/* Right column: Metrics + Chart + Recap */}
             <div className="lg:col-span-7 space-y-5">
               {/* Metric cards grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -346,6 +388,16 @@ export default function App() {
                 </div>
               )}
 
+              {/* Session Summary / Wellbeing Recap Card */}
+              <SessionSummaryCard
+                sessionDuration={wellbeing.sessionDuration}
+                timeline={wellbeing.timeline}
+                currentPosture={posture}
+                currentEyes={eyes}
+                completedStretches={stretch.completedCount}
+                isRunning={visionState.isRunning}
+              />
+
               {/* Timeline chart */}
               <TimelineChart data={wellbeing.timeline} />
 
@@ -400,6 +452,13 @@ export default function App() {
             </p>
             <div className="flex items-center gap-4">
               <PrivacyBadge compact />
+              <button
+                onClick={() => setIsGuideOpen(true)}
+                className="text-xs text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-sage-400" />
+                Guide & Tour
+              </button>
               <a
                 href="https://github.com/RevDra/SOLURA"
                 target="_blank"
